@@ -89,8 +89,13 @@
         private TApplication? _application;
         private readonly List<IModule<TApplication, TBuilder>> _modules;
 
-        private ModularApplication(TBuilder builder)
+        /// <summary>
+        /// Creates a modular application using the specified builder.
+        /// </summary>
+        /// <param name="builder">The builder the registered modules will configure.</param>
+        public ModularApplication(TBuilder builder)
         {
+            ArgumentNullException.ThrowIfNull(builder);
             _builder = builder;
             _application = null;
             _modules = [];
@@ -163,26 +168,16 @@
             RunModulesConfigureApplication();
         }
 
-                private static ModularApplication<TApplication, TBuilder> Create(TBuilder builder)
-        {
-            return new ModularApplication<TApplication, TBuilder>(builder);
-        }
-
         /// <summary>
-        /// Creates a modular application around <paramref name="builder"/> and
-        /// registers <paramref name="module"/> with it.
+        /// Registers a module with this application.
         /// </summary>
-        /// <param name="builder">The builder the module will configure.</param>
         /// <param name="module">The module to register.</param>
-        /// <returns>
-        /// A new <see cref="ModularApplication{TApplication, TBuilder}"/> containing
-        /// only <paramref name="module"/>.
-        /// </returns>
-        public static ModularApplication<TApplication, TBuilder> AddModule(TBuilder builder, IModule<TApplication, TBuilder> module)
+        /// <returns>This application.</returns>
+        public ModularApplication<TApplication, TBuilder> AddModule(IModule<TApplication, TBuilder> module)
         {
-            var app = Create(builder);
-            app._modules.Add(module);
-            return app;
+            ArgumentNullException.ThrowIfNull(module);
+            _modules.Add(module);
+            return this;
         }
 
         /// <summary>
