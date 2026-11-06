@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="Mekhane.AspNet/Mekhane.AspNet.csproj" />
+  <Project Path="Mekhane.DependencyInjection/Mekhane.DependencyInjection.csproj" />
   <Project Path="Mekhane/Mekhane.csproj" />
 </Solution>

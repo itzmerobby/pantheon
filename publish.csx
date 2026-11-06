@@ -1,7 +1,11 @@
 using System.Diagnostics;
 using System.Xml.Linq;
 
-var root = FindRepositoryRoot();
+var scriptPath = Environment.GetCommandLineArgs().FirstOrDefault(argument =>
+    string.Equals(Path.GetExtension(argument), ".csx", StringComparison.OrdinalIgnoreCase)
+    && File.Exists(argument))
+    ?? throw new InvalidOperationException("Could not determine the path of publish.csx.");
+var root = Path.GetDirectoryName(Path.GetFullPath(scriptPath))!;
 if (Args.Count != 1 || string.IsNullOrWhiteSpace(Args[0]))
 {
     throw new ArgumentException("Pass the package version as the only argument.");
@@ -11,7 +15,8 @@ var expectedVersion = Args[0].Trim();
 var projectPaths = new[]
 {
     Path.Combine(root, "Mekhane", "Mekhane", "Mekhane.csproj"),
-    Path.Combine(root, "Mekhane", "Mekhane.AspNet", "Mekhane.AspNet.csproj")
+    Path.Combine(root, "Mekhane", "Mekhane.AspNet", "Mekhane.AspNet.csproj"),
+    Path.Combine(root, "Mekhane", "Mekhane.DependencyInjection", "Mekhane.DependencyInjection.csproj")
 };
 
 var projects = projectPaths.Select(ReadProject).ToArray();
@@ -28,7 +33,7 @@ if (mismatches.Length > 0)
 
 foreach (var project in projects)
 {
-    Console.WriteLine($"Validated {project.PackageId} {project.Version} ({string.Join(", ", project.TargetFrameworks)}).");
+    Console.WriteLine($"Validated {project.PackageId} {project.Version} ({project.TargetFramework}).");
 }
 
 var apiKey = Environment.GetEnvironmentVariable("NUGET_API_KEY");
@@ -39,12 +44,15 @@ if (string.IsNullOrWhiteSpace(apiKey))
 
 foreach (var project in projects)
 {
-    RunDotnet(root, "pack", project.Path, "--configuration", "Release");
-
-    var packagePath = Path.Combine(
+    var outputDirectory = Path.Combine(
         Path.GetDirectoryName(project.Path)!,
         "bin",
         "Release",
+        project.TargetFramework);
+    RunDotnet(root, "pack", project.Path, "--configuration", "Release", "--output", outputDirectory);
+
+    var packagePath = Path.Combine(
+        outputDirectory,
         $"{project.PackageId}.{project.Version}.nupkg");
     if (!File.Exists(packagePath))
     {
@@ -60,23 +68,6 @@ foreach (var project in projects)
         apiKey,
         "--source",
         "https://api.nuget.org/v3/index.json");
-}
-
-static string FindRepositoryRoot()
-{
-    for (var directory = new DirectoryInfo(Environment.CurrentDirectory);
-         directory is not null;
-         directory = directory.Parent)
-    {
-        if (File.Exists(Path.Combine(directory.FullName, "ecosystem.version"))
-            && File.Exists(Path.Combine(directory.FullName, "Mekhane", "Mekhane.slnx")))
-        {
-            return directory.FullName;
-        }
-    }
-
-    throw new DirectoryNotFoundException(
-        "Could not find the Pantheon repository root. Run this script from the repository or one of its subdirectories.");
 }
 
 static ProjectInfo ReadProject(string path)
@@ -97,17 +88,7 @@ static ProjectInfo ReadProject(string path)
         properties.FirstOrDefault(element => element.Name.LocalName == name)?.Value.Trim()
         ?? throw new InvalidOperationException($"Project {path} is missing <{name}>.");
 
-    var targetFrameworks = properties
-        .Where(element => element.Name.LocalName is "TargetFramework" or "TargetFrameworks")
-        .SelectMany(element => element.Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        .Distinct(StringComparer.Ordinal)
-        .ToArray();
-    if (targetFrameworks.Length == 0)
-    {
-        throw new InvalidOperationException($"Project {path} has no <TargetFramework> or <TargetFrameworks>.");
-    }
-
-    return new ProjectInfo(path, RequiredProperty("PackageId"), RequiredProperty("Version"), targetFrameworks);
+    return new ProjectInfo(path, RequiredProperty("PackageId"), RequiredProperty("Version"), RequiredProperty("TargetFramework"));
 }
 
 static void RunDotnet(string workingDirectory, params string[] arguments)
@@ -132,4 +113,4 @@ static void RunDotnet(string workingDirectory, params string[] arguments)
     }
 }
 
-record ProjectInfo(string Path, string PackageId, string Version, string[] TargetFrameworks);
+record ProjectInfo(string Path, string PackageId, string Version, string TargetFramework);

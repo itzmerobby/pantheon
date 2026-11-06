@@ -2,32 +2,23 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
-var root = FindRepositoryRoot();
-var versionPath = Path.Combine(root, "ecosystem.version");
+var scriptPath = Environment.GetCommandLineArgs().FirstOrDefault(argument =>
+    string.Equals(Path.GetExtension(argument), ".csx", StringComparison.OrdinalIgnoreCase)
+    && File.Exists(argument))
+    ?? throw new InvalidOperationException("Could not determine the path of version-sync.csx.");
+var root = Path.GetDirectoryName(Path.GetFullPath(scriptPath))!;
 if (Args.Count != 1 || string.IsNullOrWhiteSpace(Args[0]))
 {
     throw new ArgumentException("Pass the package version as the only argument.");
 }
 
 var version = Args[0].Trim();
-var currentVersion = File.ReadAllText(versionPath);
-if (!string.Equals(currentVersion.Trim(), version, StringComparison.Ordinal))
-{
-    var lineEnding = currentVersion.EndsWith("\r\n", StringComparison.Ordinal)
-        ? "\r\n"
-        : currentVersion.EndsWith('\n')
-            ? "\n"
-            : currentVersion.EndsWith('\r')
-                ? "\r"
-                : string.Empty;
-    File.WriteAllText(versionPath, version + lineEnding);
-    Console.WriteLine($"Set ecosystem.version to {version}.");
-}
 
 var projectPaths = new[]
 {
     Path.Combine(root, "Mekhane", "Mekhane", "Mekhane.csproj"),
-    Path.Combine(root, "Mekhane", "Mekhane.AspNet", "Mekhane.AspNet.csproj")
+    Path.Combine(root, "Mekhane", "Mekhane.AspNet", "Mekhane.AspNet.csproj"),
+    Path.Combine(root, "Mekhane", "Mekhane.DependencyInjection", "Mekhane.DependencyInjection.csproj")
 };
 
 foreach (var projectPath in projectPaths)
@@ -74,21 +65,4 @@ foreach (var projectPath in projectPaths)
     {
         Console.WriteLine($"{Path.GetFileName(projectPath)} is already at version {version}.");
     }
-}
-
-static string FindRepositoryRoot()
-{
-    for (var directory = new DirectoryInfo(Environment.CurrentDirectory);
-         directory is not null;
-         directory = directory.Parent)
-    {
-        if (File.Exists(Path.Combine(directory.FullName, "ecosystem.version"))
-            && File.Exists(Path.Combine(directory.FullName, "Mekhane", "Mekhane.slnx")))
-        {
-            return directory.FullName;
-        }
-    }
-
-    throw new DirectoryNotFoundException(
-        "Could not find the Pantheon repository root. Run this script from the repository or one of its subdirectories.");
 }
