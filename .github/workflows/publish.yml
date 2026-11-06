@@ -44,6 +44,15 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
+      - name: Verify NuGet login
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NuGet login did not return an API key. Verify the NUGET_USER secret and the NuGet trusted-publishing policy for itzmerobby/pantheon and publish.yml."
+            exit 1
+          fi
+
       - name: Pack and publish packages
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
