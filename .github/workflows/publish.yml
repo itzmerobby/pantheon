@@ -1,0 +1,41 @@
+name: Publish NuGet packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install dotnet-script
+        run: |
+          dotnet tool install --global dotnet-script
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Synchronize package versions
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$VERSION" ]; then
+            echo "The version tag must include a version after the v prefix." >&2
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          dotnet script version-sync.csx -- "$VERSION"
+
+      - name: Pack and publish packages
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet script publish.csx -- "$PACKAGE_VERSION"
