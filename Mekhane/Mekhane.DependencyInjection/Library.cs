@@ -1,6 +1,7 @@
 using Mekhane;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Pantheon.Common;
 
 namespace Mekhane.DependencyInjection;
 
@@ -18,7 +19,12 @@ public sealed class DependencyInjectionApplication :
     /// <param name="host">The host to wrap.</param>
     public DependencyInjectionApplication(IHost host)
     {
-        ArgumentNullException.ThrowIfNull(host);
+        if (host is null)
+        {
+            throw new PantheonPackageException(
+                "The generic host cannot be null. Supply a built IHost instance.",
+                "MEKHANE000017");
+        }
         Host = host;
     }
 
@@ -62,7 +68,12 @@ public sealed class DependencyInjectionApplicationBuilder :
     /// <param name="builder">The host builder to wrap.</param>
     public DependencyInjectionApplicationBuilder(HostApplicationBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
+        if (builder is null)
+        {
+            throw new PantheonPackageException(
+                "The host application builder cannot be null. Supply a HostApplicationBuilder.",
+                "MEKHANE000018");
+        }
         _builder = builder;
     }
 

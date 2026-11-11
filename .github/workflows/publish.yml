@@ -19,15 +19,15 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-
-      - name: Install dotnet-script
-        run: |
-          dotnet tool install --global dotnet-script
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Synchronize package versions
         run: |
@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
           echo "PACKAGE_VERSION=$VERSION" >> "$GITHUB_ENV"
-          dotnet script version-sync.csx -- "$VERSION"
+          node version-sync.mjs "$VERSION"
 
       - name: NuGet login
         id: nuget-login
@@ -57,4 +57,4 @@ jobs:
       - name: Pack and publish packages
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
-        run: dotnet script publish.csx -- "$PACKAGE_VERSION"
+        run: node publish.mjs "$PACKAGE_VERSION"

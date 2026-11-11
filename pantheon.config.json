@@ -1,0 +1,19 @@
+{
+    "packages": [
+        {
+            "group": "Pantheon",
+            "packages": [
+                "Pantheon.Common"
+            ]
+        },
+        {
+            "group": "Mekhane",
+            "packages": [
+                "Mekhane",
+                "Mekhane.AspNet",
+                "Mekhane.DependencyInjection",
+                "Mekhane.Discovery"
+            ]
+        }
+    ]
+}

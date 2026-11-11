@@ -1,5 +1,12 @@
 <Solution>
   <Project Path="Mekhane.AspNet/Mekhane.AspNet.csproj" />
+  <Project Path="Mekhane.AspNet.Tests/Mekhane.AspNet.Tests.csproj" />
   <Project Path="Mekhane.DependencyInjection/Mekhane.DependencyInjection.csproj" />
+  <Project Path="Mekhane.DependencyInjection.Tests/Mekhane.DependencyInjection.Tests.csproj" />
+  <Project Path="Mekhane.Discovery/Mekhane.Discovery.csproj" />
+  <Project Path="Mekhane.Discovery.Tests/Mekhane.Discovery.Tests.csproj" />
   <Project Path="Mekhane/Mekhane.csproj" />
+  <Project Path="Mekhane.Tests/Mekhane.Tests.csproj" />
+  <Project Path="../Pantheon/Pantheon.Common/Pantheon.Common.csproj" />
+  <Project Path="../Pantheon/Pantheon.Common.Tests/Pantheon.Common.Tests.csproj" />
 </Solution>

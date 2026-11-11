@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Mekhane\Mekhane.csproj" />
+    <ProjectReference Include="..\..\Pantheon\Pantheon.Common\Pantheon.Common.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
@@ -12,7 +13,7 @@
     <Nullable>enable</Nullable>
 
     <PackageId>Mekhane.DependencyInjection</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.2</Version>
     <Authors>itzmerobby</Authors>
     <Description>Dependency injection and Generic Host integration for Mekhane.</Description>
     <PackageTags>modular;dependency-injection;hosting;generic-host</PackageTags>

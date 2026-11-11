@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Pantheon.Common;
 
 namespace Mekhane.AspNet;
 
@@ -25,7 +26,12 @@ public sealed class ModularWebApplication :
 {
     public ModularWebApplication(WebApplication application)
     {
-        ArgumentNullException.ThrowIfNull(application);
+        if (application is null)
+        {
+            throw new PantheonPackageException(
+                "The ASP.NET Core application cannot be null. Supply a built WebApplication.",
+                "MEKHANE000015");
+        }
         Application = application;
     }
 
@@ -128,7 +134,12 @@ public sealed class ModularWebApplicationBuilder :
 {
     public ModularWebApplicationBuilder(WebApplicationBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
+        if (builder is null)
+        {
+            throw new PantheonPackageException(
+                "The ASP.NET Core application builder cannot be null. Supply a WebApplicationBuilder.",
+                "MEKHANE000016");
+        }
         Builder = builder;
     }
 

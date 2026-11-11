@@ -1,4 +1,6 @@
-﻿namespace Mekhane
+﻿using Pantheon.Common;
+
+namespace Mekhane
 {
     /// <summary>
     /// A runnable application. Implement this on the type your host produces
@@ -41,7 +43,7 @@
         /// <remarks>
         /// Every type listed here must be registered in the same
         /// <see cref="ModularApplication{TApplication, TBuilder}"/>. If a dependency is
-        /// missing, startup fails with an <see cref="InvalidOperationException"/>.
+        /// missing, startup fails with a <see cref="PantheonPackageException"/>.
         /// Dependencies are never added automatically; this is deliberate, so that
         /// misconfiguration is reported instead of silently corrected.
         /// Return an empty array if the module has no dependencies.
@@ -76,7 +78,7 @@
     /// </para>
     /// <para>
     /// An instance can be run only once. Calling <see cref="Run"/> or
-    /// <see cref="RunAsync"/> a second time throws an <see cref="InvalidOperationException"/>.
+    /// <see cref="RunAsync"/> a second time throws a <see cref="PantheonPackageException"/>.
     /// </para>
     /// </remarks>
     /// <typeparam name="TApplication">The application type being composed.</typeparam>
@@ -95,7 +97,12 @@
         /// <param name="builder">The builder the registered modules will configure.</param>
         public ModularApplication(TBuilder builder)
         {
-            ArgumentNullException.ThrowIfNull(builder);
+            if (builder is null)
+            {
+                throw new PantheonPackageException(
+                    "The application builder cannot be null. Supply a builder that can construct the application.",
+                    "MEKHANE000013");
+            }
             _builder = builder;
             _application = null;
             _modules = [];
@@ -105,7 +112,9 @@
         {
             if (_application is not null)
             {
-                throw new InvalidOperationException("The application has already been built and is running, make sure you are not calling Run() or RunAsync() multiple times on the same ModularApplication instance.");
+                throw new PantheonPackageException(
+                    "This modular application has already been run. Create a new instance before running it again.",
+                    "MEKHANE000001");
             }
         }
 
@@ -113,7 +122,9 @@
         {
             if (_modules.Count == 0)
             {
-                throw new InvalidOperationException("The application has no modules. Please add at least one module before running the application.");
+                throw new PantheonPackageException(
+                    "The application has no modules. Register at least one module before running it.",
+                    "MEKHANE000002");
             }
         }
 
@@ -123,11 +134,40 @@
 
             foreach (var module in _modules)
             {
-                foreach (var dependency in module.Dependencies)
+                Type[] dependencies;
+                try
                 {
+                    dependencies = module.Dependencies;
+                }
+                catch (Exception exception)
+                {
+                    throw new PantheonPackageException(
+                        $"Module '{module.GetType().FullName}' threw while reporting its dependencies.",
+                        "MEKHANE000005",
+                        exception);
+                }
+
+                if (dependencies is null)
+                {
+                    throw new PantheonPackageException(
+                        $"Module '{module.GetType().FullName}' returned a null dependency list.",
+                        "MEKHANE000006");
+                }
+
+                foreach (var dependency in dependencies)
+                {
+                    if (dependency is null)
+                    {
+                        throw new PantheonPackageException(
+                            $"Module '{module.GetType().FullName}' declared a null dependency. Remove the null entry or specify a module type.",
+                            "MEKHANE000007");
+                    }
+
                     if (!moduleTypes.Contains(dependency))
                     {
-                        throw new InvalidOperationException($"Module {module.GetType().Name} depends on {dependency.Name}, which is not yet registered. A common mistake is to register the orders in th wrong order. Please ensure that all dependencies are registered in the correct order before the module that depends on them.");
+                        throw new PantheonPackageException(
+                            $"Module '{module.GetType().FullName}' depends on '{dependency.FullName}', but that module is not registered. Register the dependency before running the application.",
+                            "MEKHANE000003");
                     }
                 }
             }
@@ -144,7 +184,17 @@
         {
             foreach (var module in _modules)
             {
-                module.ConfigureBuilder(_builder);
+                try
+                {
+                    module.ConfigureBuilder(_builder);
+                }
+                catch (Exception exception)
+                {
+                    throw new PantheonPackageException(
+                        $"Module '{module.GetType().FullName}' threw while configuring the application builder.",
+                        "MEKHANE000008",
+                        exception);
+                }
             }
         }
 
@@ -152,19 +202,41 @@
         {
             if (_application is null)
             {
-                throw new InvalidOperationException("Cannot configure application because it has not been built yet. Call Build() first.");
+                throw new PantheonPackageException(
+                    "Cannot configure modules because the application has not been built.",
+                    "MEKHANE000004");
             }
 
             foreach (var module in _modules)
             {
-                module.ConfigureApplication(_application);
+                try
+                {
+                    module.ConfigureApplication(_application);
+                }
+                catch (Exception exception)
+                {
+                    throw new PantheonPackageException(
+                        $"Module '{module.GetType().FullName}' threw while configuring the built application.",
+                        "MEKHANE000009",
+                        exception);
+                }
             }
         }
 
         private void RunBuildPipeline()
         {
             RunModulesConfigureBuilder();
-            _application = _builder.Build();
+            try
+            {
+                _application = _builder.Build();
+            }
+            catch (Exception exception)
+            {
+                throw new PantheonPackageException(
+                    $"Application builder '{_builder.GetType().FullName}' threw while building the application.",
+                    "MEKHANE000010",
+                    exception);
+            }
             RunModulesConfigureApplication();
         }
 
@@ -175,7 +247,12 @@
         /// <returns>This application.</returns>
         public ModularApplication<TApplication, TBuilder> AddModule(IModule<TApplication, TBuilder> module)
         {
-            ArgumentNullException.ThrowIfNull(module);
+            if (module is null)
+            {
+                throw new PantheonPackageException(
+                    "The module cannot be null. Supply an implementation of IModule.",
+                    "MEKHANE000014");
+            }
             _modules.Add(module);
             return this;
         }
@@ -184,7 +261,7 @@
         /// Validates the configuration, builds the application, and runs it,
         /// blocking until it stops.
         /// </summary>
-        /// <exception cref="InvalidOperationException">
+        /// <exception cref="PantheonPackageException">
         /// The application has already been run, has no modules, or a module's
         /// dependency is not registered.
         /// </exception>
@@ -192,7 +269,17 @@
         {
             RunPreRunChecks();
             RunBuildPipeline();
-            _application!.Run();
+            try
+            {
+                _application!.Run();
+            }
+            catch (Exception exception)
+            {
+                throw new PantheonPackageException(
+                    $"Application '{typeof(TApplication).FullName}' threw while running.",
+                    "MEKHANE000011",
+                    exception);
+            }
         }
 
         /// <summary>
@@ -201,7 +288,7 @@
         /// </summary>
         /// <param name="cancellationToken">A token used to request shutdown.</param>
         /// <returns>A task that completes when the application stops.</returns>
-        /// <exception cref="InvalidOperationException">
+        /// <exception cref="PantheonPackageException">
         /// The application has already been run, has no modules, or a module's
         /// dependency is not registered.
         /// </exception>
@@ -209,7 +296,21 @@
         {
             RunPreRunChecks();
             RunBuildPipeline();
-            await _application!.RunAsync(cancellationToken);
+            try
+            {
+                await _application!.RunAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw new PantheonPackageException(
+                    $"Application '{typeof(TApplication).FullName}' threw while running asynchronously.",
+                    "MEKHANE000012",
+                    exception);
+            }
         }
     }
 }
